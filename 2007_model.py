@@ -28,25 +28,24 @@ def get_outside_input():
     iterations_since_last_burst += 1
     return burst_value
 
-
+# ---------- initial values - iteration "0"  ----------
 
 activate_using_thresh = np.vectorize(
     lambda thresh, val: Utils.get_traditional_by_threshold(thresh)(val))
 
+# settings the vectors
+ones = np.ones((len(Utils.xi), ))
 rR = np.zeros((len(Utils.xi), num_iterations))
 rL = np.zeros((len(Utils.xi), num_iterations))
 SR = np.zeros((1, num_iterations))
 SL = np.zeros((1, num_iterations))
 eye_position = np.zeros((1, num_iterations))
 
-ones = np.ones((len(Utils.xi), ))
-
-# Set initial values
+# setting the initial values
 rR[:, 0] = starting_position * Utils.xi + Utils.r0
-rR_activated = activate_using_thresh(Utils.thresholds, rR[:, 0])
 rL[:, 0] = (-starting_position) * Utils.xi + Utils.r0
+rR_activated = activate_using_thresh(Utils.thresholds, rR[:, 0])
 rL_activated = activate_using_thresh(Utils.thresholds, rL[:, 0])
-
 
 SR[:, 0] = np.dot(rR_activated, Utils.eta)
 SL[:, 0] = np.dot(rL_activated, Utils.eta)
@@ -79,7 +78,8 @@ for i in range(1, num_iterations):
     eye_position[:, i] = (SR[:, i] - SL[:, i])
 
 
-# Plot eye position over time
+# ---------- plot eye position  ----------
+
 time = np.arange(0, num_iterations) * dt
 plt.figure(figsize=(10, 6))
 plt.plot(time, eye_position[0, :])
