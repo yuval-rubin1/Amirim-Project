@@ -8,6 +8,7 @@ tau_r = 1
 tau_s = 0.01
 dt = 0.001
 num_iterations = 10000
+np.random.seed(7)
 
 # ---------- saccade mechanism  ----------
 
@@ -56,7 +57,7 @@ eye_position[:, 0] = (SR[:, 0] - SL[:, 0])
 
 for i in range(1, num_iterations):
 
-    if i % int(1.0 / dt) == 0 and i > 0:  # Every 1 second (converted to steps)
+    if i % int(1.0 / dt) == 0:  # Every 1 second (converted to steps)
         burst_val = np.random.choice([-1, 1]) * np.random.uniform(0.16, 0.22)
         start_burst(burst_val)
     
@@ -64,9 +65,9 @@ for i in range(1, num_iterations):
     outside_input = get_outside_input()
     
     # implementing equation (5) for r_i using euler approximation, when T_i is r0.
-    rR[:, i] = rR[:, i-1] + dt*(-rR[:, i-1] + (SR[:, i-1]-SL[:, i-1]+ outside_input)*Utils.xi + Utils.r0)
-    rL[:, i] = rL[:, i-1] + dt*(-rL[:, i-1] - (SR[:, i-1]-SL[:, i-1] + outside_input)*Utils.xi + Utils.r0)
-    
+    rR[:, i] = rR[:, i-1] + dt*(1 / tau_r)*(-rR[:, i-1] + (SR[:, i-1]-SL[:, i-1]+ outside_input)*Utils.xi + Utils.r0)
+    rL[:, i] = rL[:, i-1] + dt*(1 / tau_r)*(-rL[:, i-1] - (SR[:, i-1]-SL[:, i-1] + outside_input)*Utils.xi + Utils.r0)
+
     # apply activation function - high threshold, equation (7)
     rR_activated = activate_using_thresh(Utils.thresholds, rR[:, i])
     rL_activated = activate_using_thresh(Utils.thresholds, rL[:, i])
