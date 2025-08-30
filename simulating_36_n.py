@@ -8,13 +8,14 @@ tau_s = 0.01
 class Utils:
     time_step = 0.002
     
-    etas_source = 'traditional_etas_with_thresh.csv'
+    etas_source_thresh = 'traditional_etas_with_thresh.csv'
+    etas_source = 'traditional_etas_no_thresh.csv'
     old_etas_source = 'traditional_etas.csv'
-    traditional_etas = np.loadtxt(etas_source, delimiter=',')
+    eta = np.loadtxt(etas_source, delimiter=',')
     slopes_thresh = np.genfromtxt('./slopes_thresholds.csv', delimiter=',')
-    ksi = slopes_thresh[:, 0]
+    xi = slopes_thresh[:, 0]
     thresholds = slopes_thresh[:, 2]
-    start_r = slopes_thresh[:, 1]
+    r0 = slopes_thresh[:, 1]
     
     @staticmethod    
     def euler_approx(y_t_n, dy_dt_t_n, h=time_step):
@@ -41,6 +42,22 @@ class Utils:
                 return 0
             return Utils.traditional(x - thresh)
         return res
+    
+    @staticmethod
+    def traditional_spikes(r, spike):
+        return spike / (100 + r)
+    
+    @staticmethod
+    def get_traditional_by_threshold_spikes(thresh):
+        def res(r, spike):
+            r = max(r - thresh, 0)
+            return Utils.traditional_spikes(r, spike)
+        return res
+    
+    def random_noise() -> float:
+        if np.random.random() < 0.0001:
+            return np.random.uniform(-0.005, 0.005)
+        return 0.0
 
 
 class Neuron:
@@ -66,9 +83,9 @@ class Neuron:
             float: the new r value of the neuron
         """
         r = self._r_values[-1]
-        dr_dt = (1 / tau_r) * (-r + (self._ksi * (S_R - S_L)) + (self._ksi * outside_input) + tonic_input) # multiply outside by ksi because of paragraph that talks about it
+        dr_dt = (1 / tau_r) * (-r + (self._ksi * (S_R - S_L)) + (self._ksi * outside_input) + tonic_input) + Utils.random_noise() # multiply outside by ksi because of paragraph that talks about it 
         new_r = Utils.euler_approx(r, dr_dt)
-        self._r_values.append(new_r)
+        self._r_values.append(new_r)   
         return new_r
     
     def get_r(self):
@@ -211,17 +228,17 @@ class Manager:
     
     def __init__(self):
         
-        right_neurons = [Neuron(Utils.ksi[i], 
-                                Utils.traditional_etas[i], 
+        right_neurons = [Neuron(Utils.xi[i], 
+                                Utils.eta[i], 
                                 Utils.get_traditional_by_threshold(Utils.thresholds[i]),
-                                Utils.start_r[i])
-                         for i in range(len(Utils.traditional_etas))]
+                                Utils.r0[i])
+                         for i in range(len(Utils.eta))]
         
-        left_neurons = [Neuron(-Utils.ksi[i],
-                               Utils.traditional_etas[i], 
+        left_neurons = [Neuron(-Utils.xi[i],
+                               Utils.eta[i], 
                                Utils.get_traditional_by_threshold(Utils.thresholds[i]),
-                               Utils.start_r[i])
-                         for i in range(len(Utils.traditional_etas))]
+                               Utils.r0[i])
+                         for i in range(len(Utils.eta))]
         
         
         self._network = Network(right_neurons, left_neurons)
@@ -242,11 +259,12 @@ class Manager:
     def run(self, num_steps):
         for t in range(num_steps):
             outside_input = 0
-            if t % 300 == 0:
+            if t % 2000 == 0 and t > 0:
                 burst_value = np.random.choice([-1, 1]) * np.random.uniform(0.16, 0.22)
                 self.start_burst(burst_value)
             
             outside_input = self.get_outside_input()
+            outside_input = 0
             self._network.update(outside_input) 
         self._network.plot_S_R_minus_S_L()
 
