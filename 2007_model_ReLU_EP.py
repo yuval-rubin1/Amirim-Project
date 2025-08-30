@@ -3,11 +3,10 @@ import matplotlib.pyplot as plt
 
 from simulating_36_n import Utils
 
-starting_position = 10
-tau_r = 1
-tau_s = 0.01
-dt = 0.001
-redIO = 1
+starting_position = 5
+tau_r = 0.1
+tau_s = 0.001
+dt = 0.0001
 num_iterations = 10000
 np.random.seed(7)
 
@@ -37,13 +36,7 @@ rR = np.zeros((len(Utils.xi), num_iterations))
 rL = np.zeros((len(Utils.xi), num_iterations))
 SR = np.zeros((len(Utils.xi), num_iterations))
 SL = np.zeros((len(Utils.xi), num_iterations))
-spiking_R = np.zeros((len(Utils.xi), num_iterations))
-spiking_L = np.zeros((len(Utils.xi), num_iterations))
-spike_cnt_R = np.zeros((len(Utils.xi), ))
-spike_cnt_L = np.zeros((len(Utils.xi), ))
 eye_position = np.zeros((1, num_iterations))
-
-# in Nadav implementation, we don't use spikes for starting values.
 
 # setting the initial values
 rR[:, 0] = starting_position * Utils.xi + Utils.r0
@@ -53,7 +46,6 @@ rL[:, 0] = np.maximum(rL[:, 0], 0)
 rR_activated = Utils.traditional(rR[:, 0])
 rL_activated = Utils.traditional(rL[:, 0])
 
-# synaptic output from each population
 SR[:, 0] = rR_activated
 SL[:, 0] = rL_activated
 
@@ -80,30 +72,13 @@ for i in range(1, num_iterations):
     rL[:, i] = -Utils.xi * (eye_position[:, i-1]) + Utils.r0
     rR[:, i] = np.maximum(rR[:, i], 0)
     rL[:, i] = np.maximum(rL[:, i], 0)
+    rR_activated = Utils.traditional(rR[:, i])
+    rL_activated = Utils.traditional(rL[:, i])
     
-    
-    # calculate spikes
-
-    add_to_spike_cnt_R = np.random.rand(len(Utils.xi)) < (rR[:, 0] * dt * redIO)
-    add_to_spike_cnt_L = np.random.rand(len(Utils.xi)) < (rL[:, 0] * dt * redIO)
-
-    spike_cnt_R += add_to_spike_cnt_R
-    spike_cnt_L += add_to_spike_cnt_L
-
-    spiking_R[:, 0] = spike_cnt_R % redIO == 0
-    spiking_L[:, 0] = spike_cnt_L % redIO == 0
-    
-    rR_activated = Utils.traditional_by_spike(rR[:, i], spiking_R[:, i])
-    rL_activated = Utils.traditional_by_spike(rL[:, i], spiking_L[:, i])
-
     
     # implementing equation (5) for SL, SR using euler approximation, with activated r values
-
-    SR[:, i] = SR[:, i-1] + (1 / tau_s) * ((dt * -SR[:, i-1]) + rR_activated)
-    SL[:, i] = SL[:, i-1] + (1 / tau_s) * ((dt * -SL[:, i-1]) + rL_activated)
-
-    # SR[:, i] = SR[:, i-1] + dt*(1 / tau_s)*(-SR[:, i-1] + np.dot(rR_activated, Utils.eta))
-    # SL[:, i] = SL[:, i-1] + dt*(1 / tau_s)*(-SL[:, i-1] + np.dot(rL_activated, Utils.eta))
+    SR[:, i] = SR[:, i-1] + dt*(1 / tau_s)*(-SR[:, i-1] + rR_activated)
+    SL[:, i] = SL[:, i-1] + dt*(1 / tau_s)*(-SL[:, i-1] + rL_activated)
     
     eye_position[:, i] = np.dot((SR[:, i] - SL[:, i]), Utils.eta)
 
@@ -121,22 +96,11 @@ plt.show()
 
 # ---------- plot rR for a specific neuron ----------
 
-# neuron_index = 15  # Choose which neuron to plot (adjust as needed)
-# plt.figure(figsize=(10, 6))
-# plt.plot(time, rR[neuron_index, :])
-# plt.xlabel('Time (s)')
-# plt.ylabel(f'rR[{neuron_index}]')
-# plt.title(f'Right Side Neuron {neuron_index} Activity Over Time')
-# plt.grid(True)
-# plt.show()
-
-# ---------- plot spiking_R for a specific neuron ----------
-
 neuron_index = 15  # Choose which neuron to plot (adjust as needed)
 plt.figure(figsize=(10, 6))
-plt.plot(time, spiking_R[neuron_index, :], 'o-', markersize=2)
+plt.plot(time, rR[neuron_index, :])
 plt.xlabel('Time (s)')
-plt.ylabel(f'spiking_R[{neuron_index}]')
-plt.title(f'Right Side Neuron {neuron_index} Spiking Activity Over Time')
+plt.ylabel(f'rR[{neuron_index}]')
+plt.title(f'Right Side Neuron {neuron_index} Activity Over Time')
 plt.grid(True)
 plt.show()
