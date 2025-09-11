@@ -1,31 +1,75 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import stats
+import pickle
+from mpi4py import MPI
 
-from simulating_36_n import Utils
-
+lambda_0 = 200
 starting_position = 0
 tau_r = 1
 tau_s = 0.1
 dt = 0.0001
-sim_seconds = 3
+sim_seconds = 1
 num_iterations = sim_seconds * int(1 / dt)
 # num_iterations = 10000
 repeat_neurons = 1000
 M = 25  # Take every Mth spike (spike thinning factor)
 
+# Load parameters from pickle file
+with open('utils_params.pkl', 'rb') as f:
+    params = pickle.load(f)
+    xi = params['xi']
+    eta = params['eta']
+    r0 = params['r0']
+# xi = Utils.xi
+# eta = Utils.eta
+# r0 = Utils.r0
 
-xi = Utils.xi
-eta = Utils.eta
-r0 = Utils.r0
+# MPI setup
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
 
-plot_ep = True
-num_seeds = 1
-eye_position_all = np.zeros((num_seeds, num_iterations))  # Store all trajectories
-# ---------- initial values - iteration "0"  ----------
+plot_ep = False
+num_seeds = 2
+# eye_position_all = np.zeros((num_seeds, num_iterations))  # Store all trajectories
 
-for seed in range(num_seeds):
+# Distribute seeds across MPI processes
+seeds_per_process = num_seeds // size
+remainder = num_seeds % size
 
-    print(f"\rSeed {seed+1}/{num_seeds}", end="", flush=True)
+# Calculate which seeds this process will handle
+if rank < remainder:
+    local_num_seeds = seeds_per_process + 1
+    start_seed = rank * local_num_seeds
+else:
+    local_num_seeds = seeds_per_process
+    start_seed = rank * seeds_per_process + remainder
+
+end_seed = start_seed + local_num_seeds
+
+
+def traditional(x):
+    return x / (lambda_0 + x)
+
+def traditional_by_spike(r, spike):
+    return spike / (lambda_0 + r)
+
+# Store local MSDs for this process
+local_msds = []
+
+# MSD computation function
+def compute_msd(x):
+    N = len(x)
+    msd = np.zeros(N)
+    for dt in range(1, N):  # lag
+        diffs = x[dt:] - x[:-dt]
+        msd[dt] = np.mean(diffs**2)
+    return msd
+
+for seed_idx, seed in enumerate(range(start_seed, end_seed)):
+
+    print(f"\rProcess {rank}: Seed {seed_idx+1}/{local_num_seeds} (Global seed {seed+1}/{num_seeds})", end="", flush=True)
     # setting the vectors
     np.random.seed(seed)
     ones = np.ones((len(xi), ))
@@ -47,8 +91,8 @@ for seed in range(num_seeds):
     rL[:, 0] = (-starting_position) * xi + r0
     rR[:, 0] = np.maximum(rR[:, 0], 0)
     rL[:, 0] = np.maximum(rL[:, 0], 0)
-    rR_activated = Utils.traditional(rR[:, 0])
-    rL_activated = Utils.traditional(rL[:, 0])
+    rR_activated = traditional(rR[:, 0])
+    rL_activated = traditional(rL[:, 0])
 
     # synaptic output from each population
     SR[:, 0] = rR_activated
@@ -63,8 +107,8 @@ for seed in range(num_seeds):
 
 
     for i in range(1, num_iterations):
-        if i % 10 == 0:
-            print(f"\rSeed {seed+1}/{num_seeds} - Iteration {i}/{num_iterations}", end="", flush=True)
+        if i % 1000 == 0 and rank == 0:
+            print(f"\rProcess {rank}: Seed {seed_idx+1}/{local_num_seeds} - Iteration {i}/{num_iterations}", end="", flush=True)
         
         # Implementing equation (23) in Nadav's article
         rR[:, i] = xi * (eye_position[:, i-1]) + r0
@@ -101,8 +145,8 @@ for seed in range(num_seeds):
         
         # -----------------------
         
-        rR_activated = Utils.traditional_by_spike(rR[:, i], spiking_R[:, i])
-        rL_activated = Utils.traditional_by_spike(rL[:, i], spiking_L[:, i])
+        rR_activated = traditional_by_spike(rR[:, i], spiking_R[:, i])
+        rL_activated = traditional_by_spike(rL[:, i], spiking_L[:, i])
 
         # Implementing equation (24) in Nadav's article
         SR[:, i] = SR[:, i-1] + (1 / tau_s) * ((dt * -SR[:, i-1]) + rR_activated)
@@ -111,8 +155,9 @@ for seed in range(num_seeds):
         # Implementing equation (25) in Nadav's article
         eye_position[:, i] = np.dot((SR[:, i] - SL[:, i]), eta)
 
-    # Store this seed's trajectory in the main array
-    eye_position_all[seed, :] = eye_position[0, :]
+    # Compute MSD for this seed and store locally
+    msd_for_this_seed = compute_msd(eye_position[0, :])
+    local_msds.append(msd_for_this_seed)
 
     if plot_ep:
         # ---------- plot eye position  ----------
@@ -180,62 +225,71 @@ for seed in range(num_seeds):
         print(f"L neurons - Mean spike count: {np.mean(spike_counts_L):.4f}, Mean avg rL: {np.mean(rL_averages):.4f}")
         
 
-# MSD
-def compute_msd(x):
-    N = len(x)
-    msd = np.zeros(N)
-    for dt in range(1, N):  # lag
-        diffs = x[dt:] - x[:-dt]
-        msd[dt] = np.mean(diffs**2)
-    return msd
+# Gather all MSDs from all processes
+all_local_msds = comm.gather(local_msds, root=0)
 
-# Option 1: Use last seed's trajectory
-# msd = compute_msd(eye_position_all[-1, :])
+if rank == 0:
+    # Flatten the gathered MSDs into a single array
+    msds = []
+    for proc_msds in all_local_msds:
+        msds.extend(proc_msds)
+    
+    msds = np.array(msds)
+    print(f"\nCollected {len(msds)} MSD arrays from all processes")
+    
+    # Save the MSDs array
+    np.save('msds_array_2007.npy', msds)
+    print("Saved MSDs to msds_array_2007.npy")
 
-# Option 2: Average MSD across all seeds (uncomment if preferred)
-all_msds = np.array([compute_msd(eye_position_all[seed, :]) for seed in range(num_seeds)])
-msd = np.mean(all_msds, axis=0)
+# MSD analysis (only on rank 0)
+if rank == 0:
+    # Average MSD across all seeds
+    msd = np.mean(msds, axis=0)
 
-lag_time = np.arange(1, len(msd)) * dt  # Convert lag to seconds
+if rank == 0:
+    # Average MSD across all seeds
+    msd = np.mean(msds, axis=0)
 
-# Linear regression on the middle portion of the data
-start_idx = int(0.10 * len(lag_time))  # Skip first 10%
-end_idx = int(0.8 * len(lag_time))     # Skip last 20%
+    lag_time = np.arange(1, len(msd)) * dt  # Convert lag to seconds
 
-# Extract the fitting region
-lag_fit = lag_time[start_idx:end_idx]
-msd_fit = msd[1:][start_idx:end_idx]  # msd[1:] to match lag_time length
+    # Linear regression on the middle portion of the data
+    start_idx = int(0.10 * len(lag_time))  # Skip first 10%
+    end_idx = int(0.8 * len(lag_time))     # Skip last 20%
 
-# Perform linear regression: MSD = 2*D*t + intercept
-# where D is the diffusion coefficient
-from scipy import stats
-slope, intercept, r_value, p_value, std_err = stats.linregress(lag_fit, msd_fit)
+    # Extract the fitting region
+    lag_fit = lag_time[start_idx:end_idx]
+    msd_fit = msd[1:][start_idx:end_idx]  # msd[1:] to match lag_time length
 
-# Diffusion coefficient is slope/2 for 1D random walk
-diffusion_coefficient = slope / 2
+    # Perform linear regression: MSD = 2*D*t + intercept
+    # where D is the diffusion coefficient
 
-# Generate fitted line for plotting
-fitted_line = slope * lag_time + intercept
+    slope, intercept, r_value, p_value, std_err = stats.linregress(lag_fit, msd_fit)
 
-plt.figure(figsize=(10, 6))
-plt.plot(lag_time, msd[1:], 'b-', label='MSD data', alpha=0.7)
-plt.plot(lag_time, fitted_line, 'r--', linewidth=2, label=f'Linear fit (D = {diffusion_coefficient:.6f} deg²/s)')
-plt.axvline(lag_fit[0], color='gray', linestyle=':', alpha=0.5, label='Fit region')
-plt.axvline(lag_fit[-1], color='gray', linestyle=':', alpha=0.5)
-plt.xlabel('Lag (s)', fontsize=12)
-plt.ylabel('Mean Squared Displacement (deg²)', fontsize=12)
-plt.title(f'Mean Squared Displacement vs Lag\nDiffusion Coefficient: {diffusion_coefficient:.6f} deg²/s (R² = {r_value**2:.4f})', fontsize=14)
-plt.grid(True, alpha=0.3)
-plt.legend()
-plt.show()
+    # Diffusion coefficient is slope/2 for 1D random walk
+    diffusion_coefficient = slope / 2
 
-print(f"Linear regression results:")
-print(f"Slope: {slope:.6f} deg²/s")
-print(f"Intercept: {intercept:.6f} deg²")
-print(f"Diffusion coefficient (D): {diffusion_coefficient:.6f} deg²/s")
-print(f"R-squared: {r_value**2:.4f}")
-print(f"P-value: {p_value:.2e}")
-print(f"Standard error: {std_err:.6f}")
+    # Generate fitted line for plotting
+    fitted_line = slope * lag_time + intercept
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(lag_time, msd[1:], 'b-', label='MSD data', alpha=0.7)
+    plt.plot(lag_time, fitted_line, 'r--', linewidth=2, label=f'Linear fit (D = {diffusion_coefficient:.6f} deg²/s)')
+    plt.axvline(lag_fit[0], color='gray', linestyle=':', alpha=0.5, label='Fit region')
+    plt.axvline(lag_fit[-1], color='gray', linestyle=':', alpha=0.5)
+    plt.xlabel('Lag (s)', fontsize=12)
+    plt.ylabel('Mean Squared Displacement (deg²)', fontsize=12)
+    plt.title(f'Mean Squared Displacement vs Lag\nDiffusion Coefficient: {diffusion_coefficient:.6f} deg²/s (R² = {r_value**2:.4f})', fontsize=14)
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.savefig(f'2007_msd_{num_seeds}_seeds_{sim_seconds}_seconds_{M}_thinning.png', dpi=300, bbox_inches='tight')
+
+    print(f"Linear regression results:")
+    print(f"Slope: {slope:.6f} deg²/s")
+    print(f"Intercept: {intercept:.6f} deg²")
+    print(f"Diffusion coefficient (D): {diffusion_coefficient:.6f} deg²/s")
+    print(f"R-squared: {r_value**2:.4f}")
+    print(f"P-value: {p_value:.2e}")
+    print(f"Standard error: {std_err:.6f}")
 
 exit()
 
