@@ -10,3 +10,28 @@ This directory contains the implementation of the 2007 model. It includes variou
 7. `2007_for_cluster.py`: This version is optimized for running on a computing cluster. It loads parameters (saved by simulating_36_n.py) from a pickle file and saves results (MSD plots, MSD arrays) in a specified directory. It will run each seed separately, allowing for parallel execution on a cluster.
 
 The `slopes_thresholds.csv` file contains parameters extracted by NBS from the 2007 model regarding tuning curves. The order of the columns is: xi, r0, thresholds.
+
+# Requirements
+
+To run the code in this directory, install dependencies using pip:
+
+```bash
+pip install -r requirements.txt
+```
+
+You can also use a virtual environment to manage dependencies:
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+pip install -r requirements.txt
+```
+
+# Usage
+To run the main stochastic model with multiple neurons and thinning, use the following command:
+
+```bash
+python 2007_model_stoch_multi_n.py
+```
+
+This will execute the simulation and output the diffusion coefficient along with other statistics. You can modify parameters such as `num_seeds`, `repeat_neurons`, `sim_seconds`, and `M` (thinning factor) directly in the script to suit your needs.
