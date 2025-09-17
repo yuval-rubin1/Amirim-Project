@@ -5,9 +5,9 @@ from scipy.optimize import lsq_linear
 
 
 # Load the CSV data into a numpy array named "slopes_thresh"
-slopes_thresh = np.genfromtxt('./slopes_thresholds.csv', delimiter=',')
+slopes_thresh = np.genfromtxt('./2007_model/slopes_thresholds.csv', delimiter=',')
 
-lambda_0 = 200
+lambda_0 = 100
 
 # activation_function = Utils.ReLU
 activation_function = lambda x: max(0, x / (lambda_0 + x))
@@ -42,7 +42,7 @@ labels = np.array(labels)
 model = LinearRegression(fit_intercept=False)
 # model = Ridge(alpha=0.1, fit_intercept=False)
 model.fit(samples, labels)
-np.savetxt(f"traditional_etas_no_thresh_{lambda_0}.csv", model.coef_, delimiter=",")
+np.savetxt(f"./2007_model/traditional_etas_no_thresh_{lambda_0}.csv", model.coef_, delimiter=",")
 # result = lsq_linear(samples, labels, bounds=(0.15, 5))
 
 # constrained_coefs = result.x

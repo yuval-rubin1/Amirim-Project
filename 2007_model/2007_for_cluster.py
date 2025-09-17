@@ -4,7 +4,7 @@ from scipy import stats
 import pickle
 from mpi4py import MPI
 
-lambda_0 = 200
+lambda_0 = 100
 starting_position = 0
 tau_r = 1
 tau_s = 0.1

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 tau_r = 1
 tau_s = 0.01
-lambda_0 = 200
+lambda_0 = 100
 
 class Utils:
     time_step = 0.002
