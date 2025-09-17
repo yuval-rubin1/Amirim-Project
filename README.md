@@ -18,4 +18,6 @@ This repository contains the implementation of an Amirim project exploring the o
 # 2007 Model
 This directory contains the implementation of the the models offered by Goldman and NBS (Nadav Ben-Shushan) in the above papers. The code is based on the equations and parameters provided in the papers, as well as additional data files provided by NBS.
 
+I encourage you to read the README.md file in the 2007_model directory for more details about the implementation and usage of the code.
+
 # Connectome-based Model
