@@ -9,7 +9,6 @@ tau_s = 0.1
 dt = 0.0001
 sim_seconds = 3
 num_iterations = sim_seconds * int(1 / dt)
-# num_iterations = 10000
 repeat_neurons = 1000
 M = 10  # Take every Mth spike (spike thinning factor)
 
@@ -21,11 +20,12 @@ r0 = Utils.r0
 plot_ep = True
 num_seeds = 1
 eye_position_all = np.zeros((num_seeds, num_iterations))  # Store all trajectories
-# ---------- initial values - iteration "0"  ----------
+
+
 
 for seed in range(num_seeds):
-
     print(f"\rSeed {seed+1}/{num_seeds}", end="", flush=True)
+    # ---------- initial values - iteration "0"  ----------
     # setting the vectors
     np.random.seed(seed)
     ones = np.ones((len(xi), ))
@@ -38,9 +38,6 @@ for seed in range(num_seeds):
     spike_counters_R = np.zeros((len(xi), repeat_neurons))  # Individual spike counters for each repeated neuron
     spike_counters_L = np.zeros((len(xi), repeat_neurons))  # Individual spike counters for each repeated neuron
     eye_position = np.zeros((1, num_iterations))  # Current seed's eye position
-    
-
-    # in Nadav implementation, we don't use spikes for starting values.
 
     # setting the initial values
     rR[:, 0] = starting_position * xi + r0
@@ -57,11 +54,7 @@ for seed in range(num_seeds):
     eye_position[:, 0] = np.dot((SR[:, 0] - SL[:, 0]), eta)
 
     # ---------- run simulation  ----------
-
-    see_vals = np.zeros((len(xi), num_iterations))  # For debugging: to see rR*dt values
-
-
-
+    
     for i in range(1, num_iterations):
         if i % 10 == 0:
             print(f"\rSeed {seed+1}/{num_seeds} - Iteration {i}/{num_iterations}", end="", flush=True)
@@ -72,17 +65,12 @@ for seed in range(num_seeds):
         rR[:, i] = np.maximum(rR[:, i], 0)
         rL[:, i] = np.maximum(rL[:, i], 0)
         
-        
-        # calculate spikes with no thinning 
-        # spiking_R[:, i] = np.sum(np.random.rand(len(xi), repeat_neurons) < (dt * rR[:, i])[:, np.newaxis], axis=1) / repeat_neurons
-        # spiking_L[:, i] = np.sum(np.random.rand(len(xi), repeat_neurons) < (dt * rL[:, i])[:, np.newaxis], axis=1) / repeat_neurons
-        
-        # -----------------------
-        # calculate spikes with thinning
+        # ----------------------- Spikes calculation with repeated neurons and thinning -----------------------
         # Generate spikes for each repeated neuron
         raw_spikes_R = np.random.rand(len(xi), repeat_neurons) < (dt * rR[:, i] * M)[:, np.newaxis]
         raw_spikes_L = np.random.rand(len(xi), repeat_neurons) < (dt * rL[:, i] * M)[:, np.newaxis]
         
+        # calculate spikes with thinning:
         # Update spike counters and determine which spikes to keep
         spike_counters_R += raw_spikes_R
         spike_counters_L += raw_spikes_L
@@ -150,34 +138,6 @@ for seed in range(num_seeds):
         plt.legend()
         plt.grid(True)
         plt.show()
-
-
-        # Analysis for all neurons (R and L)
-
-        # Calculate average rR and rL values for all neurons
-        rR_averages = np.mean(rR, axis=1)
-        rL_averages = np.mean(rL, axis=1)
-
-        # Count total spikes for all neurons
-        spike_counts_R = np.sum(spiking_R, axis=1)
-        spike_counts_L = np.sum(spiking_L, axis=1)
-
-        # Calculate differences between spike counts and average r values
-        diff_R = (spike_counts_R / sim_seconds) - rR_averages
-        diff_L = (spike_counts_L / sim_seconds) - rL_averages
-
-        # Calculate average of these differences
-        avg_diff_R = np.mean(diff_R)
-        avg_diff_L = np.mean(diff_L)
-
-        print("Analysis for all neurons:")
-        print(f"Average difference (spike count - avg rR) for R neurons: {avg_diff_R:.4f}")
-        print(f"Average difference (spike count - avg rL) for L neurons: {avg_diff_L:.4f}")
-
-        # Additional statistics
-        print(f"\nAdditional statistics:")
-        print(f"R neurons - Mean spike count: {np.mean(spike_counts_R):.4f}, Mean avg rR: {np.mean(rR_averages):.4f}")
-        print(f"L neurons - Mean spike count: {np.mean(spike_counts_L):.4f}, Mean avg rL: {np.mean(rL_averages):.4f}")
         
 
 # MSD
@@ -189,8 +149,6 @@ def compute_msd(x):
         msd[dt] = np.mean(diffs**2)
     return msd
 
-# Option 1: Use last seed's trajectory
-# msd = compute_msd(eye_position_all[-1, :])
 
 # Option 2: Average MSD across all seeds (uncomment if preferred)
 all_msds = np.array([compute_msd(eye_position_all[seed, :]) for seed in range(num_seeds)])
@@ -206,8 +164,7 @@ end_idx = int(0.8 * len(lag_time))     # Skip last 20%
 lag_fit = lag_time[start_idx:end_idx]
 msd_fit = msd[1:][start_idx:end_idx]  # msd[1:] to match lag_time length
 
-# Perform linear regression: MSD = 2*D*t + intercept
-# where D is the diffusion coefficient
+# Perform linear regression: MSD = 2*D*t + intercept where D is the diffusion coefficient
 from scipy import stats
 slope, intercept, r_value, p_value, std_err = stats.linregress(lag_fit, msd_fit)
 
@@ -236,7 +193,5 @@ print(f"Diffusion coefficient (D): {diffusion_coefficient:.6f} deg²/s")
 print(f"R-squared: {r_value**2:.4f}")
 print(f"P-value: {p_value:.2e}")
 print(f"Standard error: {std_err:.6f}")
-
-exit()
 
 
