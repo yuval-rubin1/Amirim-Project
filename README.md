@@ -15,6 +15,8 @@ This repository contains the implementation of an Amirim project exploring the o
     - Published in Nature Neuroscience, 2024
     - [Link to paper](https://www.nature.com/articles/s41593-024-01784-3)
 
+You are encouraged to read the README.md file in each sub directory for more details about the implementation and usage of the code.
+
 # Requirements and Setup
 
 To run the code in this directory, install dependencies using pip:
@@ -52,6 +54,5 @@ Each of the sub directories contains a different model implementation. To run a 
 # 2007 Model
 This directory contains the implementation of the the models offered by Goldman and NBS (Nadav Ben-Shushan) in the above papers. The code is based on the equations and parameters provided in the papers, as well as additional data files provided by NBS.
 
-I encourage you to read the README.md file in the 2007_model directory for more details about the implementation and usage of the code.
-
 # Connectome-based Model
+This directory contains implementation of connectome-based model related functions. It uses code and data created by the original authors of the 2024 paper as well as modifications made to fit the needs of this project.
