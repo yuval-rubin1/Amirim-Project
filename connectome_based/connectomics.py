@@ -6,7 +6,7 @@ from scipy import stats
 from mpi4py import MPI
 
 # Load from file
-with open('data/lb_data.pkl', 'rb') as f:
+with open('./connectome_based/data/lb_data.pkl', 'rb') as f:
     data = pickle.load(f)
     lb_Wnorm = data['lb_Wnorm']
     lb_cdf = data['lb_cdf']
@@ -139,54 +139,3 @@ if rank == 0:
     msd = avg_msd
 else:
     msd = None
-
-# Broadcast the result to all processes (if needed for further computation)
-msd = comm.bcast(msd, root=0)
-dt = 0.001
-lag_time = np.arange(1, len(msd)) * dt  # Convert lag to seconds
-
-# Only run analysis and plotting on rank 0
-if rank == 0:
-    # Linear regression on the middle portion of the data
-    start_idx = int(0.02 * len(lag_time))  # Skip first 2%
-    end_idx = int(0.4 * len(lag_time))     # Skip last 60%
-
-    # Extract the fitting region
-    lag_fit = lag_time[start_idx:end_idx]
-    msd_fit = msd[1:][start_idx:end_idx]  # msd[1:] to match lag_time length
-
-    # Perform linear regression: MSD = 2*D*t + intercept
-    # where D is the diffusion coefficient
-    slope, intercept, r_value, p_value, std_err = stats.linregress(lag_fit, msd_fit)
-
-    # Diffusion coefficient is slope/2 for 1D random walk
-    diffusion_coefficient = slope / 2
-
-    # Generate fitted line for plotting
-    fitted_line = slope * lag_time + intercept
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(lag_time, msd[1:], 'b-', label='MSD data', alpha=0.7)
-    plt.plot(lag_time, fitted_line, 'r--', linewidth=2, label=f'Linear fit (D = {diffusion_coefficient:.6f} deg²/s)')
-    plt.axvline(lag_fit[0], color='gray', linestyle=':', alpha=0.5, label='Fit region')
-    plt.axvline(lag_fit[-1], color='gray', linestyle=':', alpha=0.5)
-    plt.xlabel('Lag (s)', fontsize=12)
-    plt.ylabel('Mean Squared Displacement (deg²)', fontsize=12)
-    plt.title(f'Mean Squared Displacement vs Lag\nDiffusion Coefficient: {diffusion_coefficient:.6f} deg²/s (R² = {r_value**2:.4f})', fontsize=14)
-    plt.grid(True, alpha=0.3)
-    plt.legend()
-    plt.savefig('msd_plot.png', dpi=300, bbox_inches='tight')
-    
-    print(f"\nCompleted {num_seeds} simulations using {size} MPI processes")
-    print(f"Diffusion coefficient: {diffusion_coefficient:.6f} deg²/s")
-    print(f"R²: {r_value**2:.4f}")
-
-    # plt.figure(1, (10, 6))
-    # plt.plot(range(len(ep)), ep, 'o-', color='blue', markersize=4, label='Rate-based')
-    # plt.plot(range(len(ep_spikes)), ep_spikes, 'o-', color='red', markersize=4, label='Spike-based')
-    # plt.xlabel('Time', fontsize=12)
-    # plt.ylabel('Eye Position (deg)', fontsize=12)
-    # plt.title('Eye Position Over Time', fontsize=14)
-    # plt.legend()
-    # plt.grid(True, alpha=0.3)
-    # plt.savefig('eye_position_plot.png', dpi=300, bbox_inches='tight')
