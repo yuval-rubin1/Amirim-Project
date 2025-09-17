@@ -1,13 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from simulating_36_n import Utils
+from utils import Utils
 
 starting_position = 0
 tau_r = 1
 tau_s = 0.1
 dt = 0.0001
-sim_seconds = 3
+sim_seconds = 1
 num_iterations = sim_seconds * int(1 / dt)
 repeat_neurons = 1000
 M = 10  # Take every Mth spike (spike thinning factor)

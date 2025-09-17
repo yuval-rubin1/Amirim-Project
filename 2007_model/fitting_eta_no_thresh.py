@@ -1,5 +1,5 @@
 import numpy as np
-from simulating_36_n import Utils
+from utils import Utils
 from sklearn.linear_model import LinearRegression, Ridge
 from scipy.optimize import lsq_linear
 

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from simulating_36_n import Utils
+from utils import Utils
 
 starting_position = 10
 tau_r = 1
