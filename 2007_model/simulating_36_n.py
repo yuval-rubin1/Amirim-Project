@@ -8,9 +8,9 @@ lambda_0 = 200
 class Utils:
     time_step = 0.002
     
-    etas_source_thresh = './2007_model/traditional_etas_with_thresh.csv'
+    # etas_source_thresh = './2007_model/traditional_etas_with_thresh.csv'
     etas_source = f'./2007_model/traditional_etas_no_thresh_{lambda_0}.csv'
-    old_etas_source = './2007_model/traditional_etas.csv'
+    # old_etas_source = './2007_model/traditional_etas.csv'
     eta = np.loadtxt(etas_source, delimiter=',')
     slopes_thresh = np.genfromtxt('./2007_model/slopes_thresholds.csv', delimiter=',')
     xi = slopes_thresh[:, 0]
