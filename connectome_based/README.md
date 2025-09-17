@@ -26,3 +26,7 @@ with open('data/lb_data.pkl', 'wb') as f:
 ```
 
 The script will save the MSD results for each seed in a .npy file named `msds_array.npy`, on which you can then run the analysis using the `analyze_msd.py` script in the main directory (preferably with the `ou` parameter).
+
+# Data
+
+The `data` subdirectory contains the necessary data files for running the connectome-based model simulation. The main file is `lb_data.pkl`, which contains the connectivity matrix and other parameters needed for the simulation. It was loaded from the original authors code, as described above.
