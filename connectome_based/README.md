@@ -18,4 +18,11 @@ To run the simulation, use the following command:
 python connectomics.py
 ```
 
+Note that the simulation loads data from a pickle file located in the `data` subdirectory. That data was saved from the original authors code, using the following code segment (run after the notebook loads all the data):
+
+```
+with open('data/lb_data.pkl', 'wb') as f:
+    pickle.dump({'lb_Wnorm': lb_Wnorm, 'lb_cdf': lb_cdf}, f)
+```
+
 The script will save the MSD results for each seed in a .npy file named `msds_array.npy`, on which you can then run the analysis using the `analyze_msd.py` script in the main directory (preferably with the `ou` parameter).
