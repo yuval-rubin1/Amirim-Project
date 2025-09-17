@@ -4,26 +4,9 @@ from scipy.optimize import curve_fit
 import sys
 
 
-# Load the msds array from file
-if len(sys.argv) != 2:
-    print("Usage: python analyze_msd.py <npy_filename>")
-    sys.exit(1)
-
-filename = sys.argv[1]
-msds = np.load(filename)
-print(f"Loaded msds array with shape: {msds.shape}")
-
-# Compute average MSD for each lag
-# msds has shape (num_simulations, time_steps)
-# We want to average across all simulations for each time point
-avg_msd = np.mean(msds, axis=0)
-
-# Optional: create lag time array (assuming dt=0.001 as in the original code)
-dt = 0.001
-lag_time = np.arange(1, len(avg_msd) + 1) * dt
-
 def msd_ou(tau, D, kappa):
     return (2*D/kappa)*(1.0 - np.exp(-kappa*tau))
+
 
 def fit_ou_msd(lags, msd_vals):
     
@@ -46,7 +29,8 @@ def fit_ou_msd(lags, msd_vals):
 
     return D_hat, kappa_hat, perr
 
-def plot_ou_fit_comparison():
+
+def plot_ou_fit_comparison(lag_time, avg_msd):
     """
     Fit the Ornstein-Uhlenbeck model to the average MSD data and create a comparison plot.
     """
@@ -87,8 +71,46 @@ def plot_ou_fit_comparison():
     
     return D_fitted, kappa_fitted, param_errors
 
-# Run the fitting and plotting
-D_fitted, kappa_fitted, param_errors = plot_ou_fit_comparison()
+
+def main():
+    # Parse command line arguments
+    if len(sys.argv) != 3:
+        print("Usage: python analyze_msd.py <npy_filename> <analysis_type>")
+        print("analysis_type: 'ou' for Ornstein-Uhlenbeck analysis, 'linear' for linear analysis")
+        sys.exit(1)
+
+    filename = sys.argv[1]
+    analysis_type = sys.argv[2]
+
+    if analysis_type not in ['ou', 'linear']:
+        print("Error: analysis_type must be either 'ou' or 'linear'")
+        sys.exit(1)
+    
+    # Load the msds array from file
+    msds = np.load(filename)
+    print(f"Loaded msds array with shape: {msds.shape}")
+
+    # Compute average MSD for each lag
+    # msds has shape (num_simulations, time_steps)
+    # We want to average across all simulations for each time point
+    avg_msd = np.mean(msds, axis=0)
+
+    # Optional: create lag time array (assuming dt=0.001 as in the original code)
+    dt = 0.001
+    lag_time = np.arange(1, len(avg_msd) + 1) * dt
+
+    # Run analysis based on the specified type
+    if analysis_type == 'ou':
+        # Run the OU fitting and plotting
+        D_fitted, kappa_fitted, param_errors = plot_ou_fit_comparison(lag_time, avg_msd)
+    elif analysis_type == 'linear':
+        # Placeholder for linear analysis - keep blank for now
+        print("Linear analysis selected, but not implemented yet.")
+        pass
+
+
+if __name__ == "__main__":
+    main()
 
 
 
