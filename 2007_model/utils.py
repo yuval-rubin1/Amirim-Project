@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 
 tau_r = 1
 tau_s = 0.01
@@ -61,3 +62,31 @@ class Utils:
         if np.random.random() < 0.0001:
             return np.random.uniform(-0.005, 0.005)
         return 0.0
+    
+    @staticmethod
+    def save_params_to_pickle(filename='./2007_model/utils_params.pkl'):
+        """
+        Save xi, eta, and r0 parameters to a pickle file.
+        This creates the file that 2007_for_cluster.py loads.
+        
+        Args:
+            filename (str): Name of the pickle file to save. Defaults to 'utils_params.pkl'.
+        """
+        params = {
+            'xi': Utils.xi,
+            'eta': Utils.eta,
+            'r0': Utils.r0
+        }
+        
+        with open(filename, 'wb') as f:
+            pickle.dump(params, f)
+        
+        print(f"Parameters saved to {filename}")
+        print(f"  - xi shape: {Utils.xi.shape}")
+        print(f"  - eta shape: {Utils.eta.shape}")
+        print(f"  - r0 shape: {Utils.r0.shape}")
+
+
+# Generate the pickle file when this module is run directly
+if __name__ == "__main__":
+    Utils.save_params_to_pickle()

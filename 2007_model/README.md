@@ -9,6 +9,7 @@ This directory contains the implementation of the 2007 model. It includes variou
 6. `2007_model_stoch.py`: This version introduces stochasticity into the model, allowing for random spiking of neurons. Doesn't enable repeated neurons or thinning. It also enables running the simulation various times with different seeds.
 7. `2007_model_stoch_multi_n.py`: This version allows to run stochastic simulations with repeated neurons and thinning. This is the final version and the one used for the analysis in the project. It also includes code for fitting a linear regression to the MSD curve to extract the diffusion coefficient.
 8. `2007_for_cluster.py`: This version is optimized for running on a computing cluster. It loads parameters (saved by simulating_36_n.py) from a pickle file and saves results (MSD plots, MSD arrays) in a specified directory. It will run each seed separately, allowing for parallel execution on a cluster.
+9. `utils.py`: This file contains the `Utils` class, which provides utility functions for loading parameters, saving results, and other common tasks used across different scripts. The class will dispose the eta, xi and r0 to a pickle file when the `utils.py` file is run as a script.
 
 # Data Files
 
