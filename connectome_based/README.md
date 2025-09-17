@@ -17,3 +17,5 @@ To run the simulation, use the following command:
 ```bash
 python connectomics.py
 ```
+
+The script will save the MSD results for each seed in a .npy file named `msds_array.npy`, on which you can then run the analysis using the `analyze_msd.py` script in the main directory (preferably with the `ou` parameter).
