@@ -5,9 +5,10 @@ This directory contains the implementation of the 2007 model. It includes variou
 2. `fitting_eta_no_thresh.py`: This script is a corrected version of `fitting_eta.py`, fixing the mistake in the previous version. The output of this script is the `traditional_etas_no_thresh_{n}.csv` file, where n is the lambda_0 Hz value.
 3. `simulating_36_n.py`: This is an OOP based implementation of the network. It was created for learning purposed only and should not be used for actual simulations.
 4. `2007_model.py`: This is the main implementation of the 2007 model, based on the paper's equations. It also simulates a saccade in a naive way. It has a mistake in applying activations.
-5. `2007_model_stoch.py`: This version introduces stochasticity into the model, allowing for random spiking of neurons. Doesn't enable repeated neurons or thinning. It also enables running the simulation various times with different seeds.
-6. `2007_model_stoch_multi_n.py`: This version allows to run stochastic simulations with repeated neurons and thinning. This is the final version and the one used for the analysis in the project. It also includes code for fitting a linear regression to the MSD curve to extract the diffusion coefficient.
-7. `2007_for_cluster.py`: This version is optimized for running on a computing cluster. It loads parameters (saved by simulating_36_n.py) from a pickle file and saves results (MSD plots, MSD arrays) in a specified directory. It will run each seed separately, allowing for parallel execution on a cluster.
+5. `2007_model_ReLU_EP.py`: This version implements the NBS equations for the 2007 model with correct activation.
+6. `2007_model_stoch.py`: This version introduces stochasticity into the model, allowing for random spiking of neurons. Doesn't enable repeated neurons or thinning. It also enables running the simulation various times with different seeds.
+7. `2007_model_stoch_multi_n.py`: This version allows to run stochastic simulations with repeated neurons and thinning. This is the final version and the one used for the analysis in the project. It also includes code for fitting a linear regression to the MSD curve to extract the diffusion coefficient.
+8. `2007_for_cluster.py`: This version is optimized for running on a computing cluster. It loads parameters (saved by simulating_36_n.py) from a pickle file and saves results (MSD plots, MSD arrays) in a specified directory. It will run each seed separately, allowing for parallel execution on a cluster.
 
 The `slopes_thresholds.csv` file contains parameters extracted by NBS from the 2007 model regarding tuning curves. The order of the columns is: xi, r0, thresholds.
 

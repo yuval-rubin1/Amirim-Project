@@ -63,10 +63,6 @@ for i in range(1, num_iterations):
     # representing B(t) in equation (5)
     outside_input = get_outside_input() if do_burst else 0
     
-    # implementing equation (5) for r_i using euler approximation, when T_i is r0.
-    # rR[:, i] = rR[:, i-1] + dt*(1 / tau_r)*(-rR[:, i-1] + (SR[:, i-1]-SL[:, i-1]+ outside_input)*Utils.xi + Utils.r0)
-    # rL[:, i] = rL[:, i-1] + dt*(1 / tau_r)*(-rL[:, i-1] - (SR[:, i-1]-SL[:, i-1] + outside_input)*Utils.xi + Utils.r0)
-    
     # in Nadav implementation, we actually don't have a differential equation for r, but only for S. Using his logic:
     rR[:, i] = Utils.xi * (eye_position[:, i-1]) + Utils.r0
     rL[:, i] = -Utils.xi * (eye_position[:, i-1]) + Utils.r0
