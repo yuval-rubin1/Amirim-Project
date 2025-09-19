@@ -17,7 +17,14 @@ This repository contains the implementation of an Amirim project exploring the o
 
 You are encouraged to read the README.md file in each sub directory for more details about the implementation and usage of the code.
 
-# Requirements and Setup
+## Requirements and Setup
+
+First, clone this repository:
+
+```bash
+git clone https://github.com/yuval-rubin1/Amirim-Project.git
+cd Amirim-Project
+```
 
 To run the code in this directory, install dependencies using pip:
 
