@@ -64,6 +64,18 @@ class Utils:
         return 0.0
     
     @staticmethod
+    def get_xi_statistics():
+        """
+        Calculate mean and standard deviation for xi parameter.
+        
+        Returns:
+            tuple: (mean, std) of xi values
+        """
+        mean_xi = np.mean(Utils.xi)
+        std_xi = np.std(Utils.xi)
+        return mean_xi, std_xi
+    
+    @staticmethod
     def save_params_to_pickle(filename='./2007_model/utils_params.pkl'):
         """
         Save xi, eta, and r0 parameters to a pickle file.
@@ -90,3 +102,4 @@ class Utils:
 # Generate the pickle file when this module is run directly
 if __name__ == "__main__":
     Utils.save_params_to_pickle()
+    # print(Utils.get_xi_statistics())

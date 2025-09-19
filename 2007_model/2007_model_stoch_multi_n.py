@@ -10,7 +10,7 @@ dt = 0.0001
 sim_seconds = 1
 num_iterations = sim_seconds * int(1 / dt)
 repeat_neurons = 1000
-M = 10  # Take every Mth spike (spike thinning factor)
+M = 25 # Take every Mth spike (spike thinning factor)
 
 
 xi = Utils.xi
@@ -108,7 +108,7 @@ for seed in range(num_seeds):
         plt.figure(figsize=(10, 6))
         plt.plot(time, eye_position[0, :])
         plt.xlabel('Time (s)')
-        plt.ylabel('Eye Position')
+        plt.ylabel('Eye Position (deg)')
         plt.title('Eye Position Over Time')
         plt.grid(True)
         plt.ticklabel_format(style='plain', axis='both')

@@ -238,8 +238,9 @@ if rank == 0:
     print(f"\nCollected {len(msds)} MSD arrays from all processes")
     
     # Save the MSDs array
-    np.save('msds_array_2007.npy', msds)
-    print("Saved MSDs to msds_array_2007.npy")
+    # Save every 5th element of each MSD
+    msds_thinned = msds[:, ::5]  # Take every 5th element along the time axis
+    np.save(f'msds_array_2007_thin_{M}_.npy', msds_thinned)
 
 # MSD analysis (only on rank 0)
 if rank == 0:
@@ -283,6 +284,53 @@ if rank == 0:
     plt.legend()
     plt.savefig(f'2007_msd_{num_seeds}_seeds_{sim_seconds}_seconds_{M}_thinning.png', dpi=300, bbox_inches='tight')
 
+    # Create log-log plot of MSD
+    plt.figure(figsize=(10, 6))
+    
+    # Filter out zero and negative values for log plot
+    valid_indices = (lag_time > 0) & (msd[1:] > 0)
+    lag_time_valid = lag_time[valid_indices]
+    msd_valid = msd[1:][valid_indices]
+    
+    plt.loglog(lag_time_valid, msd_valid, 'b-', label='MSD data', alpha=0.7, linewidth=2)
+    
+    # Add power law reference lines for comparison
+    # For normal diffusion: MSD ~ t^1
+    # For subdiffusion: MSD ~ t^α where α < 1
+    # For superdiffusion: MSD ~ t^α where α > 1
+    
+    if len(lag_time_valid) > 0:
+        t_ref = lag_time_valid
+        # Normal diffusion reference (slope = 1)
+        msd_ref_normal = msd_valid[0] * (t_ref / t_ref[0])
+        plt.loglog(t_ref, msd_ref_normal, 'k--', alpha=0.5, label='Normal diffusion (slope = 1)')
+        
+        # Fit power law to the data in log space
+        log_lag = np.log10(lag_time_valid)
+        log_msd = np.log10(msd_valid)
+        
+        # Use middle portion for fitting (same as linear fit)
+        start_idx_log = int(0.10 * len(log_lag))
+        end_idx_log = int(0.8 * len(log_lag))
+        
+        if end_idx_log > start_idx_log:
+            log_slope, log_intercept, log_r_value, log_p_value, log_std_err = stats.linregress(
+                log_lag[start_idx_log:end_idx_log], 
+                log_msd[start_idx_log:end_idx_log]
+            )
+            
+            # Generate fitted power law line
+            msd_powerlaw_fit = (10**log_intercept) * (lag_time_valid**log_slope)
+            plt.loglog(lag_time_valid, msd_powerlaw_fit, 'r--', linewidth=2, 
+                      label=f'Power law fit: MSD ∝ t^{log_slope:.3f} (R² = {log_r_value**2:.3f})')
+    
+    plt.xlabel('Lag Time (s)', fontsize=12)
+    plt.ylabel('Mean Squared Displacement (deg²)', fontsize=12)
+    plt.title(f'Log-Log Plot: Mean Squared Displacement vs Lag Time\n({num_seeds} seeds, {sim_seconds}s simulation, M={M} thinning)', fontsize=14)
+    plt.grid(True, alpha=0.3, which='both')
+    plt.legend()
+    plt.savefig(f'2007_msd_loglog_{num_seeds}_seeds_{sim_seconds}_seconds_{M}_thinning.png', dpi=300, bbox_inches='tight')
+
     print(f"Linear regression results:")
     print(f"Slope: {slope:.6f} deg²/s")
     print(f"Intercept: {intercept:.6f} deg²")
@@ -290,6 +338,17 @@ if rank == 0:
     print(f"R-squared: {r_value**2:.4f}")
     print(f"P-value: {p_value:.2e}")
     print(f"Standard error: {std_err:.6f}")
+    
+    if 'log_slope' in locals():
+        print(f"\nPower law fit results (log-log):")
+        print(f"Exponent (α): {log_slope:.6f}")
+        print(f"R-squared: {log_r_value**2:.4f}")
+        if log_slope < 0.9:
+            print("Indicates subdiffusive behavior (α < 1)")
+        elif log_slope > 1.1:
+            print("Indicates superdiffusive behavior (α > 1)")
+        else:
+            print("Consistent with normal diffusion (α ≈ 1)")
 
 exit()
 

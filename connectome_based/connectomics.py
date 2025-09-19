@@ -5,11 +5,16 @@ import pickle
 from scipy import stats
 from mpi4py import MPI
 
+using_cluster = True
+loading_address = '/ems/elsc-labs/burak-y/yishai.gronich/yuvalrubin/data/lb_data.pkl' if using_cluster else './connectome_based/data/lb_data.pkl'
 # Load from file
-with open('./connectome_based/data/lb_data.pkl', 'rb') as f:
+with open(loading_address, 'rb') as f:
     data = pickle.load(f)
     lb_Wnorm = data['lb_Wnorm']
     lb_cdf = data['lb_cdf']
+
+chosen_leading_eigenvalue = 0.9
+intrinsic_tau = 1.0
 
 def sorted_eigs(X):
     n = np.shape(X)[0]
@@ -68,14 +73,29 @@ def simulate(W_in,ynew=0.99,tau=0.1,customInput=False,v_in=None,x=0):
 def extract_EP(rates, ks):
     mask = np.abs(ks) > 0.01
     filtered_rates = rates[mask]
+    filtered_rates *= 20 # scaling to get more realistic firing rates, causing more realistic EP
     filtered_ks = ks[mask]
     return np.average(filtered_rates / filtered_ks)
 
-def simulate_ep(W, cdf):
-    chosen_leading_eigenvalue = 0.9
-    intrinsic_tau = 1.0
-    rates, rates_spikes = simulate(W,ynew=chosen_leading_eigenvalue,tau=intrinsic_tau)
+def get_ks(W, cdf):
+    # This function normalizes the slopes to be with the same std and mean of Goldman's slopes
     ks = get_scaled_slopes(W, cdf)
+    mean_2007 = 1.9438139806488313
+    std_2007 = 0.722532583974221
+    # Filter ks to only include values >= 0.3 for normalization calculation, because lots of neurons are not correlated with EP and their slope is near 0
+    ks_filtered = ks[ks >= 0.3]
+
+    # Calculate current mean and std of filtered ks
+    current_mean = np.mean(ks_filtered)
+    current_std = np.std(ks_filtered)
+
+    # Normalize all ks values using the filtered statistics
+    ks_normalized = ((ks - current_mean) / current_std) * std_2007 + mean_2007
+    return ks_normalized
+
+def simulate_ep(W, cdf):
+    rates, rates_spikes = simulate(W,ynew=chosen_leading_eigenvalue,tau=intrinsic_tau)
+    ks = get_ks(W, cdf)
     ep = np.zeros(rates.shape[0])
     ep_spikes = np.zeros(rates.shape[0])
     for i in range(rates.shape[0]):
@@ -134,7 +154,7 @@ if rank == 0:
     msds = np.array(msds)
     
     # Save msds array to file
-    np.save('msds_array.npy', msds)
+    np.save('msds_array_connectome_normalized_W.npy', msds[::2])
     avg_msd = np.mean(msds, axis=0)
     msd = avg_msd
 else:

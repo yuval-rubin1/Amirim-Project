@@ -12,7 +12,7 @@ def fit_ou_msd(lags, msd_vals):
     
     #initial guess
 
-    # Take the first 70% of the data points
+    # Take the first 50% of the data points
     n_points = int(0.5 * len(lags))
     time_lags = lags[:n_points]
     msd_vals = msd_vals[:n_points]
@@ -71,6 +71,35 @@ def plot_ou_fit_comparison(lag_time, avg_msd):
     
     return D_fitted, kappa_fitted, param_errors
 
+def plot_loglog_ou_fit(lag_time, avg_msd, D_fitted, kappa_fitted):
+    """
+    Create a log-log plot of the average MSD data and the fitted OU model.
+    """
+    # Generate fitted curve using the fitted parameters
+    fitted_curve = msd_ou(lag_time, D_fitted, kappa_fitted)
+    
+    # Create the log-log plot
+    plt.figure(figsize=(10, 6))
+    
+    # Plot the average MSD data
+    plt.loglog(lag_time, avg_msd, 'b-', label='Average MSD data', alpha=0.7, linewidth=1.5)
+    
+    # Plot the fitted OU model
+    plt.loglog(lag_time, fitted_curve, 'r--', linewidth=2, 
+               label=f'OU model fit (D = {D_fitted:.6f}, κ = {kappa_fitted:.3f})')
+    
+    # Add labels and styling
+    plt.xlabel('Lag (s)', fontsize=12)
+    plt.ylabel('Mean Squared Displacement (deg²)', fontsize=12)
+    plt.title(f'Log-Log MSD vs Ornstein-Uhlenbeck Model Fit\n'
+              f'D = {D_fitted:.6f} deg²/s, κ = {kappa_fitted:.3f} s⁻¹', fontsize=14)
+    plt.grid(True, alpha=0.3, which='both')
+    plt.legend()
+    
+    # Save the plot
+    plt.savefig('loglog_ou_msd_fit_plot.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
 
 def main():
     # Parse command line arguments
@@ -91,9 +120,14 @@ def main():
     print(f"Loaded msds array with shape: {msds.shape}")
 
     # Compute average MSD for each lag
-    # msds has shape (num_simulations, time_steps)
-    # We want to average across all simulations for each time point
-    avg_msd = np.mean(msds, axis=0)
+    # Check if msds is already 1D (single simulation) or 2D (multiple simulations)
+    if msds.ndim == 1:
+        # Already 1D, use as is
+        avg_msd = msds
+    else:
+        # 2D array with shape (num_simulations, time_steps)
+        # Average across all simulations for each time point
+        avg_msd = np.mean(msds, axis=0)
 
     # Optional: create lag time array (assuming dt=0.001 as in the original code)
     dt = 0.001
@@ -103,6 +137,7 @@ def main():
     if analysis_type == 'ou':
         # Run the OU fitting and plotting
         D_fitted, kappa_fitted, param_errors = plot_ou_fit_comparison(lag_time, avg_msd)
+        plot_loglog_ou_fit(lag_time, avg_msd, D_fitted, kappa_fitted)
     elif analysis_type == 'linear':
         # Placeholder for linear analysis - keep blank for now
         print("Linear analysis selected, but not implemented yet.")
