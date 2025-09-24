@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import stats
 from scipy.optimize import curve_fit
 import sys
 
@@ -99,6 +100,88 @@ def plot_loglog_ou_fit(lag_time, avg_msd, D_fitted, kappa_fitted):
     # Save the plot
     plt.savefig('loglog_ou_msd_fit_plot.png', dpi=300, bbox_inches='tight')
     plt.show()
+    
+def linear_analysis(lag_time, msd):
+
+    dt = 0.0001
+    lag_time = np.arange(1, len(msd)) * dt * 5  # Convert lag to seconds
+    # Linear regression on the middle portion of the data
+    start_idx = int(0.10 * len(lag_time))  # Skip first 10%
+    end_idx = int(0.8 * len(lag_time))     # Skip last 20%
+
+    # Extract the fitting region
+    lag_fit = lag_time[start_idx:end_idx]
+    msd_fit = msd[1:][start_idx:end_idx]  # msd[1:] to match lag_time length
+
+    # Perform linear regression: MSD = 2*D*t + intercept
+    # where D is the diffusion coefficient
+
+    slope, intercept, r_value, p_value, std_err = stats.linregress(lag_fit, msd_fit)
+
+    # Diffusion coefficient is slope/2 for 1D random walk
+    diffusion_coefficient = slope / 2
+
+    # Generate fitted line for plotting
+    fitted_line = slope * lag_time + intercept
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(lag_time, msd[1:], 'b-', label='MSD', alpha=0.7)
+    plt.plot(lag_time, fitted_line, 'r--', linewidth=2, label=f'Linear fit (D = {diffusion_coefficient:.6f} deg²/s)')
+    plt.axvline(lag_fit[0], color='gray', linestyle=':', alpha=0.5, label='Fit region')
+    plt.axvline(lag_fit[-1], color='gray', linestyle=':', alpha=0.5)
+    plt.xlabel('Lag (s)', fontsize=12)
+    plt.ylabel('Mean Squared Displacement (deg²)', fontsize=12)
+    plt.title(f'Mean Squared Displacement vs Lag\nDiffusion Coefficient: {diffusion_coefficient:.6f} deg²/s (R² = {r_value**2:.4f})', fontsize=14)
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.savefig(f'2007_msd_linear.png', dpi=300, bbox_inches='tight')
+
+    # Create log-log plot of MSD
+    plt.figure(figsize=(10, 6))
+    
+    # Filter out zero and negative values for log plot
+    valid_indices = (lag_time > 0) & (msd[1:] > 0)
+    lag_time_valid = lag_time[valid_indices]
+    msd_valid = msd[1:][valid_indices]
+    
+    plt.loglog(lag_time_valid, msd_valid, 'b-', label='MSD', alpha=0.7, linewidth=2)
+    
+    # Add power law reference lines for comparison
+    # For normal diffusion: MSD ~ t^1
+    # For subdiffusion: MSD ~ t^α where α < 1
+    # For superdiffusion: MSD ~ t^α where α > 1
+    
+    if len(lag_time_valid) > 0:
+        t_ref = lag_time_valid
+        # Normal diffusion reference (slope = 1)
+        msd_ref_normal = msd_valid[0] * (t_ref / t_ref[0])
+        plt.loglog(t_ref, msd_ref_normal, 'k--', alpha=0.5, label='Normal diffusion (slope = 1)')
+        
+        # Fit power law to the data in log space
+        log_lag = np.log10(lag_time_valid)
+        log_msd = np.log10(msd_valid)
+        
+        # Use middle portion for fitting (same as linear fit)
+        start_idx_log = int(0.10 * len(log_lag))
+        end_idx_log = int(0.8 * len(log_lag))
+        
+        if end_idx_log > start_idx_log:
+            log_slope, log_intercept, log_r_value, log_p_value, log_std_err = stats.linregress(
+                log_lag[start_idx_log:end_idx_log], 
+                log_msd[start_idx_log:end_idx_log]
+            )
+            
+            # Generate fitted power law line
+            msd_powerlaw_fit = (10**log_intercept) * (lag_time_valid**log_slope)
+            plt.loglog(lag_time_valid, msd_powerlaw_fit, 'r--', linewidth=2, 
+                      label=f'Power law fit: MSD ∝ t^{log_slope:.3f} (R² = {log_r_value**2:.3f})')
+    
+    plt.xlabel('Lag Time (s)', fontsize=12)
+    plt.ylabel('Mean Squared Displacement (deg²)', fontsize=12)
+    plt.title(f'Log-Log Plot: Mean Squared Displacement vs Lag Time', fontsize=14)
+    plt.grid(True, alpha=0.3, which='both')
+    plt.legend()
+    plt.savefig(f'2007_msd_loglog.png', dpi=300, bbox_inches='tight')
 
 
 def main():
@@ -130,7 +213,9 @@ def main():
         avg_msd = np.mean(msds, axis=0)
 
     # Optional: create lag time array (assuming dt=0.001 as in the original code)
-    dt = 0.001
+    out_dt = 0.001
+    linear_dt = 0.0001
+    dt = out_dt if analysis_type == 'ou' else linear_dt
     lag_time = np.arange(1, len(avg_msd) + 1) * dt
 
     # Run analysis based on the specified type
@@ -139,9 +224,8 @@ def main():
         D_fitted, kappa_fitted, param_errors = plot_ou_fit_comparison(lag_time, avg_msd)
         plot_loglog_ou_fit(lag_time, avg_msd, D_fitted, kappa_fitted)
     elif analysis_type == 'linear':
-        # Placeholder for linear analysis - keep blank for now
-        print("Linear analysis selected, but not implemented yet.")
-        pass
+        linear_analysis(lag_time, avg_msd)
+    return
 
 
 if __name__ == "__main__":
