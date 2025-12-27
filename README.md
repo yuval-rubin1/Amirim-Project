@@ -1,6 +1,8 @@
 # Overview
 
-This repository contains the implementation of an Amirim project exploring the oculomotor integrator of goldfish. This project is mainly based on 3 papers:
+This repository contains the implementation of an Amirim project exploring the oculomotor integrator of goldfish. You are welcome to read the project at the file "Amirim_Project - Yuval Rubin.pdf" in the repository. 
+
+This project is mainly based on 3 papers:
 
 1. Functional dissection of circuitry in a neural integrator
    - Authors: Emre Aksay, Itsaso Olasagasti, Brett D Mensh, Robert Baker, Mark S Goldman, David W Tank
