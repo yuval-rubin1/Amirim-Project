@@ -1,6 +1,6 @@
 # Overview
 
-This repository contains the implementation of an Amirim project exploring the oculomotor integrator of goldfish. You are welcome to read the project at the file "Amirim_Project - Yuval Rubin.pdf" in the repository. 
+This repository contains the implementation of an Amirim project exploring the oculomotor integrator of goldfish. You are welcome to read the [final project](https://github.com/yuval-rubin1/Amirim-Project/blob/main/Amirim_Project%20-%20Yuval%20Rubin.pdf) in the repository. 
 
 This project is mainly based on 3 papers:
 
